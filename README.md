@@ -1,310 +1,537 @@
-# AI Resume Analyzer
+# 🤖 AI Resume Analyzer
 
-A full-stack app that scores a resume against a job description, shows
-matched/missing skills, and gives AI-generated, truthful recommendations
-for improving the resume.
+An end-to-end **AI-powered Resume Analyzer** that evaluates how well a resume matches a given job description using a combination of **rule-based skill matching, semantic similarity, and deterministic scoring**.
 
-Tested during development with a live backend + frontend integration
-(signup, login, JWT auth, resume upload/text extraction, CORS, and a full
-production `next build`) — see "What's been tested" at the bottom.
+The application allows users to upload a resume, provide a job description, and receive an ATS-style compatibility analysis with matched skills, missing skills, and AI-generated recommendations for improvement.
 
-## Tech Stack
+> **Built as a practical AI Engineering project focused on combining LLMs with deterministic software logic rather than relying entirely on AI-generated decisions.**
 
-- **Frontend:** Next.js 14 (App Router, JavaScript), React, Tailwind CSS
-- **Backend:** Python, FastAPI, Pydantic, SQLAlchemy
-- **Database:** SQLite (a single local file — no separate database server to install or run)
-- **AI:** Groq API
-- **Resume parsing:** PyMuPDF (PDF), python-docx (DOCX)
-- **Semantic matching:** Sentence Transformers + FAISS
-- **Auth:** JWT (python-jose) + bcrypt password hashing (used directly, no passlib)
+---
 
-## Project Structure
+## ✨ Features
+
+### 📄 Resume Analysis
+
+* Upload resumes in **PDF** or **DOCX** format.
+* Automatically extract resume content.
+* Identify relevant skills, experience, education, and other information.
+* Prevent the AI from fabricating information that does not exist in the resume.
+
+### 🎯 Job Compatibility Analysis
+
+* Compare the resume against a provided job description.
+* Identify:
+
+  * ✅ Matched skills
+  * ❌ Missing skills
+  * 🔍 Relevant experience
+  * 📊 Overall compatibility score
+
+### 🧠 Hybrid Matching Engine
+
+The application combines multiple approaches:
+
+**Rule-Based Matching**
+
+* Detects explicit skill matches between the resume and job description.
+
+**Semantic Similarity**
+
+* Uses sentence embeddings to recognize skills and concepts even when they are expressed differently.
+
+**FAISS Vector Search**
+
+* Provides efficient similarity comparison between embedded text representations.
+
+### 🔢 Deterministic Scoring
+
+The final compatibility score is calculated using **Python-based deterministic logic** rather than allowing the LLM to arbitrarily assign a score.
+
+This makes the scoring process:
+
+* Transparent
+* Reproducible
+* Easier to debug
+* Independent of LLM variability
+
+### 🤖 AI-Powered Recommendations
+
+The system generates personalized recommendations based on the actual resume analysis, helping users understand:
+
+* Which skills they should highlight
+* What information may be missing
+* Where their resume could be improved
+* How well their current profile aligns with the target position
+
+### 🔐 Authentication
+
+* User registration and login
+* JWT-based authentication
+* Password hashing with bcrypt
+* Protected application routes
+
+### 📊 Dashboard & History
+
+Users can:
+
+* View previous analyses
+* Review compatibility scores
+* Access previous resume evaluations
+* Manage their account settings
+
+---
+
+# 🏗️ System Architecture
 
 ```text
-ai-resume-analyzer/
+                        ┌─────────────────────┐
+                        │      User           │
+                        └──────────┬──────────┘
+                                   │
+                                   ▼
+                        ┌─────────────────────┐
+                        │   Next.js Frontend  │
+                        │ React + Tailwind CSS│
+                        └──────────┬──────────┘
+                                   │
+                              REST API
+                                   │
+                                   ▼
+                        ┌─────────────────────┐
+                        │    FastAPI Backend  │
+                        └──────────┬──────────┘
+                                   │
+              ┌────────────────────┼────────────────────┐
+              │                    │                    │
+              ▼                    ▼                    ▼
+      ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+      │ Resume       │     │ Job          │     │ Authentication│
+      │ Parser       │     │ Description  │     │ JWT + bcrypt │
+      └──────┬───────┘     └──────┬───────┘     └──────────────┘
+             │                    │
+             └──────────┬─────────┘
+                        ▼
+               ┌───────────────────┐
+               │ Matching Engine   │
+               ├───────────────────┤
+               │ Rule-Based Match  │
+               │ Semantic Similarity│
+               │ FAISS             │
+               └─────────┬─────────┘
+                         │
+                         ▼
+                ┌──────────────────┐
+                │ Deterministic    │
+                │ Scoring Engine   │
+                └─────────┬────────┘
+                          │
+                          ▼
+                ┌──────────────────┐
+                │ Groq AI           │
+                │ Recommendations  │
+                └─────────┬────────┘
+                          │
+                          ▼
+                ┌──────────────────┐
+                │ Analysis Results │
+                └──────────────────┘
+```
+
+---
+
+# 🛠️ Technology Stack
+
+| Layer             | Technologies                 |
+| ----------------- | ---------------------------- |
+| Frontend          | Next.js, React, Tailwind CSS |
+| Backend           | Python, FastAPI              |
+| Validation        | Pydantic                     |
+| ORM               | SQLAlchemy                   |
+| Database          | SQLite                       |
+| AI / LLM          | Groq API                     |
+| Embeddings        | Sentence Transformers        |
+| Vector Search     | FAISS                        |
+| Resume Parsing    | PyMuPDF, python-docx         |
+| Authentication    | JWT, bcrypt                  |
+| API Communication | REST                         |
+
+---
+
+# 📁 Project Structure
+
+```text
+AI-Resume-Analyzer/
+│
 ├── backend/
 │   ├── app/
-│   │   ├── main.py                 # FastAPI entrypoint, CORS, router wiring
+│   │   ├── api/
+│   │   │   └── routes/
+│   │   │       ├── analyses.py
+│   │   │       ├── analyze.py
+│   │   │       ├── auth.py
+│   │   │       ├── dashboard.py
+│   │   │       ├── resumes.py
+│   │   │       └── users.py
+│   │   │
 │   │   ├── core/
-│   │   │   ├── config.py           # Settings loaded from .env
-│   │   │   ├── security.py         # Password hashing + JWT
-│   │   │   └── deps.py             # get_current_user dependency
+│   │   │   ├── config.py
+│   │   │   ├── deps.py
+│   │   │   └── security.py
+│   │   │
 │   │   ├── db/
-│   │   │   ├── session.py          # Engine/session/Base
-│   │   │   └── base.py             # Imports all models for create_all()
-│   │   ├── models/                 # SQLAlchemy models
-│   │   │   ├── user.py
-│   │   │   ├── resume.py
+│   │   │   ├── base.py
+│   │   │   └── session.py
+│   │   │
+│   │   ├── models/
+│   │   │   ├── analysis.py
 │   │   │   ├── job_description.py
-│   │   │   └── analysis.py
-│   │   ├── schemas/                # Pydantic request/response schemas
+│   │   │   ├── resume.py
+│   │   │   └── user.py
+│   │   │
+│   │   ├── schemas/
+│   │   │   ├── analysis.py
+│   │   │   ├── job_description.py
+│   │   │   ├── resume.py
+│   │   │   └── user.py
+│   │   │
 │   │   ├── services/
-│   │   │   ├── resume_parser.py    # PDF/DOCX text extraction
-│   │   │   ├── groq_client.py      # Groq API wrapper (JSON mode)
-│   │   │   ├── ai_extraction.py    # Structured resume/job extraction
-│   │   │   ├── matching.py         # Rule-based + semantic matching
-│   │   │   ├── scoring.py          # Deterministic weighted scoring
-│   │   │   └── recommendations.py  # Strengths/weaknesses/suggestions
-│   │   └── api/routes/
-│   │       ├── auth.py             # POST /auth/signup, /auth/login
-│   │       ├── users.py            # GET /users/me
-│   │       ├── resumes.py          # POST /resumes/upload
-│   │       ├── analyze.py          # POST /analyze
-│   │       ├── analyses.py         # GET /analyses, /analyses/{id}
-│   │       └── dashboard.py        # GET /dashboard/summary
+│   │   │   ├── ai_extraction.py
+│   │   │   ├── groq_client.py
+│   │   │   ├── matching.py
+│   │   │   ├── recommendations.py
+│   │   │   ├── resume_parser.py
+│   │   │   └── scoring.py
+│   │   │
+│   │   └── main.py
+│   │
 │   └── requirements.txt
 │
 ├── frontend/
 │   ├── app/
-│   │   ├── page.js                 # Landing page
-│   │   ├── signup/page.js
-│   │   ├── login/page.js
-│   │   ├── dashboard/page.js
-│   │   ├── analyze/page.js         # Upload resume + paste job description
-│   │   ├── analyze/results/[id]/page.js  # Full results dashboard
-│   │   ├── history/page.js
-│   │   ├── settings/page.js
-│   │   └── layout.js / globals.css
-│   ├── components/                 # Navbar, ScoreRing, ScoreBar, Badge, ProtectedRoute
-│   ├── context/AuthContext.js      # Client-side auth state (token in localStorage)
-│   ├── lib/api.js                  # Fetch wrapper for the backend API
-│   └── package.json
+│   │   ├── analyze/
+│   │   ├── dashboard/
+│   │   ├── history/
+│   │   ├── login/
+│   │   ├── settings/
+│   │   └── signup/
+│   │
+│   ├── components/
+│   ├── context/
+│   ├── lib/
+│   ├── package.json
+│   └── tailwind.config.js
 │
-├── .env.example                    # Backend environment variable template
+├── .env.example
+├── .gitignore
 └── README.md
 ```
 
-## 1. Install required software
+---
 
-- **Python** 3.11 or 3.12 — https://www.python.org/downloads/
-- **Node.js** 18+ — https://nodejs.org/
-- **VS Code** — https://code.visualstudio.com/
+# ⚙️ How It Works
 
-No separate database install needed — this project uses SQLite, which
-ships with Python and stores everything in a single file
-(`backend/resume_analyzer.db`) that's created automatically the first
-time the backend starts.
+The analysis pipeline follows these major steps:
 
-## 2. Configure the backend `.env`
+### 1. Resume Upload
 
-From the project root:
+The user uploads a PDF or DOCX resume.
+
+### 2. Text Extraction
+
+The backend extracts readable text using:
+
+* **PyMuPDF** for PDF files
+* **python-docx** for DOCX files
+
+### 3. AI Information Extraction
+
+The extracted resume content is processed to identify relevant information while maintaining a strict rule:
+
+> **The system should only use information actually present in the resume.**
+
+### 4. Job Description Processing
+
+The provided job description is analyzed to identify relevant requirements and skills.
+
+### 5. Skill Matching
+
+The system performs both:
+
+```text
+Resume
+   │
+   ├── Rule-Based Matching
+   │
+   └── Semantic Similarity
+             │
+             ▼
+       Combined Results
+```
+
+Semantic matching helps identify conceptually similar terms even when exact wording differs.
+
+### 6. Score Calculation
+
+The scoring engine calculates the final compatibility score using deterministic Python logic.
+
+The LLM does **not** directly decide the final score.
+
+### 7. AI Recommendations
+
+The Groq-powered AI generates recommendations based on the analysis results.
+
+### 8. Results
+
+The user receives:
+
+```text
+Overall Score
+      │
+      ├── Matched Skills
+      ├── Missing Skills
+      ├── Analysis
+      └── Recommendations
+```
+
+---
+
+# 🔐 Environment Variables
+
+Create the required environment files using the provided examples.
+
+### Backend
+
+Configure your backend environment variables according to `.env.example`.
+
+### Frontend
+
+Create:
+
+```text
+frontend/.env.local
+```
+
+using:
+
+```text
+frontend/.env.local.example
+```
+
+**Never commit API keys or other secrets to GitHub.**
+
+The actual `.env.local` file is intentionally excluded through `.gitignore`.
+
+---
+
+# 🚀 Getting Started
+
+## Prerequisites
+
+Make sure you have installed:
+
+* Python 3.10+
+* Node.js 18+
+* npm
+* Git
+
+You will also need a valid **Groq API key** for AI-powered functionality.
+
+---
+
+## 1. Clone the Repository
 
 ```bash
-cp .env.example backend/.env
+git clone https://github.com/abdulhannaniris-a11y/AI-Resume-Analyzer.git
+cd AI-Resume-Analyzer
 ```
 
-**Windows (Command Prompt):**
-```cmd
-copy .env.example backend\.env
+---
+
+## 2. Backend Setup
+
+Create and activate a virtual environment:
+
+### Windows
+
+```powershell
+python -m venv .venv
+.venv\Scripts\activate
 ```
 
-Open `backend/.env` and fill in:
+Install dependencies:
 
-```env
-DATABASE_URL=sqlite:///./resume_analyzer.db
-GROQ_API_KEY=your_groq_api_key
-SECRET_KEY=your_secret_key
-```
-
-The `DATABASE_URL` line can stay as-is — it already points to a local
-SQLite file. You only need to fill in:
-- `GROQ_API_KEY` — get one at https://console.groq.com
-- `SECRET_KEY` — generate one with: `python -c "import secrets; print(secrets.token_hex(32))"`
-
-## 3. Install backend dependencies
-
-```bash
+```powershell
 cd backend
-python -m venv venv
-```
-
-**macOS/Linux:**
-```bash
-source venv/bin/activate
-```
-
-**Windows:**
-```cmd
-venv\Scripts\activate
-```
-
-Then, on all platforms:
-
-```bash
 pip install -r requirements.txt
 ```
 
-> Note: `sentence-transformers` will download a small embedding model
-> (~90MB) the first time it's used. This requires an internet connection
-> on first run only.
+Configure your environment variables.
 
-## 4. Run the FastAPI backend
+Start the FastAPI server:
 
-From inside `backend/` (with the virtual environment activated):
-
-```bash
+```powershell
 uvicorn app.main:app --reload
 ```
 
-The API will be available at **http://127.0.0.1:8000**, with interactive
-docs at **http://127.0.0.1:8000/docs**. The SQLite database file and all
-tables are created automatically on first startup — no separate setup step.
+The backend will be available at:
 
-## 5. Install frontend dependencies
+```text
+http://127.0.0.1:8000
+```
 
-Open a **second terminal** (leave the backend running):
+FastAPI documentation:
 
-```bash
+```text
+http://127.0.0.1:8000/docs
+```
+
+---
+
+## 3. Frontend Setup
+
+Open another terminal:
+
+```powershell
 cd frontend
 npm install
 ```
 
-Then create the frontend's environment file:
+Configure:
 
-```bash
-cp .env.local.example .env.local
+```text
+.env.local
 ```
 
-**Windows:**
-```cmd
-copy .env.local.example .env.local
-```
+Then start the development server:
 
-The default value (`NEXT_PUBLIC_API_URL=http://127.0.0.1:8000`) already
-matches the backend above, so you shouldn't need to change it for local use.
-
-## 6. Run the Next.js frontend
-
-```bash
+```powershell
 npm run dev
 ```
 
-The app will be available at **http://localhost:3000**.
-
-## 7. Open the application
-
-1. Visit http://localhost:3000
-2. Click **Get started** and create an account
-3. From the dashboard, click **+ Analyze new resume**
-4. Upload a PDF or DOCX resume, paste a job description, and click **Analyze resume**
-5. View your score breakdown, matched/missing skills, and recommendations
-6. Visit **History** to see all past analyses
-
-## How scoring works
-
-The final 0–100 score is always calculated in Python
-(`backend/app/services/scoring.py`) — the AI is never allowed to invent the
-number. Weights (easy to change in one place):
+The frontend will be available at:
 
 ```text
-Skills Match          35%
-Experience Match      25%
-Keyword Match         15%
-Education Match       10%
-Projects Match        10%
-Resume Quality          5%
+http://localhost:3000
 ```
 
-Matching is a combination of exact/substring matching
-(`matching.py: rule_based_match`) and semantic similarity via Sentence
-Transformers + FAISS (`matching.py: semantic_match`), so skills phrased
-differently (e.g. "REST APIs" vs. "RESTful web services") can still match.
+---
 
-The AI (Groq) is only used for two things: extracting structured data that
-actually exists in the resume/job text, and writing qualitative
-strengths/weaknesses/recommendations — both are explicitly instructed
-never to invent skills, experience, or achievements.
+# 🧪 Development
 
-## Error handling
+Run the frontend and backend simultaneously:
 
-The backend returns clear, specific error messages for: duplicate email
-on signup, incorrect login credentials, invalid/expired JWTs, unsupported
-file types, empty or unreadable resumes, empty job descriptions, and Groq
-API failures (surfaced as HTTP 502 with a readable message). The frontend
-displays these inline on the relevant form instead of a generic failure.
+```text
+Terminal 1
+──────────
+cd backend
+uvicorn app.main:app --reload
+```
 
-## Known limitation: Next.js version
+```text
+Terminal 2
+──────────
+cd frontend
+npm run dev
+```
 
-This project uses Next.js 14.2.35, the final patched release in the 14.x
-line, which reached end-of-life in October 2025. `npm audit` will still
-flag a number of advisories inherited from the broader 14.x version range
-(mostly server-hosting/edge-runtime issues, not relevant to local
-development). For a production deployment, plan to upgrade to a
-currently-supported Next.js 15.x or 16.x release — that's a larger change
-(React 19, some API differences) that hasn't been tested in this project.
+Then open:
 
-## A note on Python version and native dependencies
+```text
+http://localhost:3000
+```
 
-Several packages here (`bcrypt`, `pymupdf`, `sentence-transformers`,
-`faiss-cpu`, `numpy`, and the transitive dependencies of `fastapi`/
-`pydantic`) are C/Rust-backed and only ship precompiled wheels for
-specific Python versions. `requirements.txt` uses `>=` version floors
-for every package (rather than exact pins) so `pip` always resolves to
-whatever current release actually has a wheel for your Python version —
-this was tested by installing with no exact pins at all on Python 3.13,
-where everything resolved cleanly to current releases.
+---
 
-If `pip install -r requirements.txt` ever fails partway through — **pip
-aborts the entire install if any single package fails to build**, even
-packages listed earlier in the file, so a later failure can look
-confusingly like an earlier, unrelated package "didn't install" — it's
-almost always one compiled package lacking a wheel for your exact Python
-version + OS combination and falling back to a from-source build that
-needs a compiler toolchain you don't have. If that happens:
+# 🎯 Design Principles
 
-1. Run `pip install -r requirements.txt` again and scroll to the **top**
-   of the error output, not just the last few lines — the real error
-   (e.g. `error: subprocess-exited-with-error` under a specific package's
-   name) is near the top; everything after is stack-trace noise.
-2. Look for which package name appears right before that first error.
-   Search `"<package name> pypi wheel <your Python version>"` to confirm
-   whether a wheel exists yet.
-3. If it's a compiled package with no wheel available yet for your Python
-   version, the most reliable fix is installing **Python 3.11 or 3.12**
-   alongside your current Python and creating the virtual environment with
-   that instead (e.g. `py -3.12 -m venv venv` on Windows) — these versions
-   have the widest, most mature wheel support across the whole ecosystem.
-4. The app still works without the semantic-matching packages specifically:
-   `matching.py` has a built-in fallback to rule-based-only matching if
-   `sentence-transformers` or `faiss` aren't installed, so you can comment
-   those two lines out of `requirements.txt` and get a fully working app
-   minus the "similar wording" matching layer.
+This project was built around several important engineering principles.
 
-## What's been tested
+### 1. AI Should Assist — Not Control Everything
 
-During development, this exact code was installed and run (not just
-written) to catch real bugs before delivery:
+LLMs are useful for extracting information and generating recommendations, but deterministic operations such as scoring should remain under application logic where possible.
 
-- **Backend:** a live Uvicorn server was started and exercised via curl —
-  signup, login, JWT-protected `/users/me` and `/dashboard/summary`,
-  duplicate-email and wrong-password error paths, and both PDF and DOCX
-  resume upload with real text extraction, all against the real SQLite
-  database (file created automatically, tables created on startup).
-- **Re-verified against the actual latest resolvable package versions**
-  (not just the versions used during initial development) after switching
-  `requirements.txt` to version floors — `pip install` was run with no
-  exact pins, pulling in whatever the newest compatible releases were
-  (e.g. FastAPI 0.141, Pydantic 2.13, SQLAlchemy 2.0.52, bcrypt 5.0.0,
-  PyMuPDF 1.28.2 at time of writing), and the full signup/login/upload
-  flow was re-tested against those to confirm no breaking API changes.
-- Two real bugs were caught and fixed this way: newer `bcrypt` (4.1+)
-  breaks `passlib` 1.7.4's version detection, so `app/core/security.py`
-  now calls `bcrypt` directly with no `passlib` dependency at all; and
-  PyMuPDF's `fitz` import name is deprecated in current releases (prints
-  a warning), so `resume_parser.py` now uses `import pymupdf` instead.
-- **Matching/scoring logic** was unit-tested directly with sample data.
-- **Frontend:** `npm run build` was run and completed successfully for
-  every page; a production server (`npm run start`) was started and every
-  route returned HTTP 200.
-- **Integration:** both servers were run together and a real signup
-  request was sent from the frontend's origin to the backend, confirming
-  CORS headers are correctly configured end-to-end.
+### 2. No Fabricated Resume Information
 
-**Not tested** (requires resources not available in the build environment):
-the full analyze pipeline against a real Groq API key, and the
-semantic-matching layer against real sentence-transformers/FAISS installs
-(disk space in the build environment couldn't fit the ML dependencies;
-the code has a graceful fallback to rule-based-only matching if those
-libraries are ever missing).
-If you hit an issue in either of these areas, the interactive docs at
-`/docs` are the fastest way to isolate which endpoint is failing.
+The analysis pipeline is designed to avoid inventing skills, experience, or qualifications that are not present in the source resume.
+
+### 3. Transparent Scoring
+
+The final compatibility score is calculated using Python-based logic rather than relying on an LLM's subjective judgment.
+
+### 4. Hybrid Intelligence
+
+The system combines:
+
+```text
+Traditional Software Logic
+          +
+Semantic AI
+          +
+LLM Capabilities
+          =
+More Robust Resume Analysis
+```
+
+---
+
+# 🔮 Future Improvements
+
+Potential future enhancements include:
+
+* [ ] Support for additional resume formats
+* [ ] Advanced ATS keyword analysis
+* [ ] Resume section quality scoring
+* [ ] Multiple job-description comparisons
+* [ ] Resume version management
+* [ ] Exportable analysis reports
+* [ ] Improved semantic skill taxonomy
+* [ ] Cloud database integration
+* [ ] Production deployment
+* [ ] Automated testing and CI/CD
+* [ ] More advanced AI-powered resume optimization
+
+---
+
+# 👨‍💻 Project Purpose
+
+This project was developed as part of my journey toward becoming an **AI Engineer**, with a focus on building practical applications that combine:
+
+* Artificial Intelligence
+* Large Language Models
+* Natural Language Processing
+* Semantic Search
+* Backend Engineering
+* Full-Stack Development
+* Database Design
+* Authentication
+* API Development
+
+Rather than building a simple LLM wrapper, the goal was to explore how **AI components can be integrated with traditional software engineering principles to create a reliable end-to-end application.**
+
+---
+
+# 📌 Key Takeaway
+
+The central idea behind this project is simple:
+
+> **Use AI where it adds intelligence, and use deterministic software where reliability and consistency matter.**
+
+This approach makes the application easier to reason about, test, debug, and improve.
+
+---
+
+# 📄 License
+
+This project is intended for educational and portfolio purposes.
+
+---
+
+## ⭐ Author
+
+**Abdul Hannan**
+
+Aspiring AI Engineer | Python | AI/ML | FastAPI | Next.js
+
+---
+
+If you find the project interesting, consider giving the repository a ⭐ on GitHub.
